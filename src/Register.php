@@ -1,88 +1,126 @@
 <?php
-declare(strict_types=1);
-
 namespace Staark\LoginRegister;
 
 use Staark\LoginRegister\Database as DB;
 use Staark\LoginRegister\Login;
+use Throwable;
 
 class Register {
-    
-    private static function validate($_data = []) {
-        // After check string return xss clean
-        $dataStored = [];
+    protected $dataStored = [];
+    protected $db;
+    public $errors = [];
 
-        // After check string return errors
-        $errors = [];
+    public function __construct() {
+        $this->dataStored = [];
+        $this->errors = [];
+        $this->db = DB::getInstance()->dbh;
+    }
+
+    private function validate(array $_data = []) {
+        // Not give an array return function
+        if( !$_data || empty($_data) ) {
+            throw new \Exception('Error Processing Request', 1);
+        }
 
         // Check username is ok and no xss injection
-        if( is_string($_data['user']) && !empty($_data['user']) ) {
-            $dataStored['user'] = filter_var($_data['user'], FILTER_SANITIZE_STRING);
+        if( !empty($_data['user']) && is_string($_data['user']) ) {
+            $this->dataStored['user'] = filter_var($_data['user'], FILTER_SANITIZE_STRING);
         }
 
         // Check email is ok and no xss injection
-        if( is_string($_data['email']) && !empty($_data['email']) ) {
-            $dataStored['email'] = filter_var($_data['email'], FILTER_VALIDATE_EMAIL);
+        if( !empty($_data['email']) && is_string($_data['email']) ) {
+            $this->dataStored['email'] = filter_var($_data['email'], FILTER_VALIDATE_EMAIL);
         } else {
-            $errors['email'] = "That email is not valid, please check your email !";
+            $this->errors['email'] = "That email is not valid, please check your email !";
         }
 
         // Check password is ok and no xss injection
-        if( is_string($_data['password']) && !empty($_data['password']) ) {
-            $dataStored['password'] = filter_var($_data['password'], FILTER_SANITIZE_SPECIAL_CHARS);
-            $dataStored['password'] = filter_var($_data['password'], FILTER_SANITIZE_NUMBER_INT);
-            $dataStored['pass'] = password_hash($dataStored['password'], PASSWORD_DEFAULT, ['cost' => 12]);
+        if( !empty($_data['password']) && is_string($_data['password']) ) {
+            $this->dataStored['password'] = filter_var($_data['password'], FILTER_SANITIZE_SPECIAL_CHARS);
+            $this->dataStored['password'] = filter_var($_data['password'], FILTER_SANITIZE_NUMBER_INT);
+            $this->dataStored['pass'] = password_hash($this->dataStored['password'], PASSWORD_DEFAULT, ['cost' => 12]);
         }
 
         // Check password is ok and no xss injection
-        if( is_string($_data['confirm-password']) && !empty($_data['confirm-password'])) {
-            $dataStored['confirm-password'] = filter_var($_data['confirm-password'], FILTER_SANITIZE_SPECIAL_CHARS);
-            $dataStored['confirm-password'] = filter_var($_data['confirm-password'], FILTER_SANITIZE_NUMBER_INT);
+        if( !empty($_data['confirm-password']) && is_string($_data['confirm-password']) ) {
+            $this->dataStored['confirm-password'] = filter_var($_data['confirm-password'], FILTER_SANITIZE_SPECIAL_CHARS);
+            $this->dataStored['confirm-password'] = filter_var($_data['confirm-password'], FILTER_SANITIZE_NUMBER_INT);
         }
         
         if($_data['password'] != $_data['confirm-password']) {
-            $errors['confirm-password'] = "(!) Confirm Password not match with password<br>";
+            $this->errors['confirm-password'] = "(!) Confirm Password not match with password<br>";
         }
 
-        if( isset($_data['terms']) && !empty($_data['terms']) ) {
-            $dataStored['terms'] = true;
-        } else {
-            $errors['terms'] = "(!) Confirm Accept Terms and Conditions";
+        if( !isset($_data['terms']) ) {
+            $this->errors['terms'] = "(!) Confirm Accept Terms and Conditions";
         }
 
-        return ['data' => (object) $dataStored, 'error' => $errors];
+        $this->dataStored['terms'] = true;
+
+        return [
+            'data' => (object) $this->dataStored,
+            'error' => $this->errors
+        ];
     }
 
-    public static function create($_data = []) {
-        // Store errors
-        $error = [];
-
-        if(!empty($_data)) {
-            if($valid = self::validate($_data)) {
-                if(empty($valid['error'])) {
-                    $_SESSION['register']['user'] = $valid['data']->user;
-                    $_SESSION['register']['email'] = $valid['data']->email;
-                    $sql = "INSERT INTO accounts(name, email, password) VALUES ('{$valid['data']->user}', '{$valid['data']->email}', '{$valid['data']->pass}')";
-                    
-                    if($query = DB::getInstance()->dbh->prepare($sql)) {
-                        // Execute the query
-                        $query->execute();
-
-                        echo "Thanks for registring your user id is: " . DB::getInstance()->dbh->lastInsertId();
-                        $_SESSION['register']['user'] = "";
-                        $_SESSION['register']['email'] = "";
-                        exit;
-                    }
-                } else {
-                    $_SESSION['register']['user'] = $valid['data']->user;
-                    $_SESSION['register']['email'] = $valid['data']->email;
-                    $error['errors'] = $valid['error'];
-                }
-            }
-        } else {
-            $error['empty'] = "Nothing to read or send";
+    public function create($_data = []) {
+        if( !$_data || empty($_data) ) {
+            throw new \Exception('Error Processing Request', 1);
         }
 
-        return $error;
+        /**
+         * After validate the string and data keys given in the form
+         * Insert to database new user
+         * 
+         * @param string name
+         * @param string email
+         * @param string password
+         */
+        if($valid = $this->validate($_data)) {
+
+            if(!empty($valid['error'])) {
+                $_SESSION['register']['user'] = $valid['data']->user;
+                $_SESSION['register']['email'] = $valid['data']->email;
+                $this->errors['errors'] = $valid['error'];
+            }
+
+            /**
+             * Set on that form active session for store email and name
+             * After successfull validation remove that session keys
+             * 
+             * @param string name
+             * @param string email
+             */
+            $_SESSION['register']['user'] = $valid['data']->user;
+            $_SESSION['register']['email'] = $valid['data']->email;
+
+            /**
+             * Prepare statement for registration
+             */
+            $queryString = $this->db->prepare("INSERT INTO accounts(name, email, password) VALUES (:name, :email, :pass)");
+            
+            /**
+             * Binding validation is ok and no xss injection
+             */
+            $queryString->bindParam(':name', $valid['data']->user, \PDO::PARAM_STR, 64);
+            $queryString->bindParam(':email', $valid['data']->email, \PDO::PARAM_STR, 128);
+            $queryString->bindParam(':pass', $valid['data']->pass, \PDO::PARAM_STR, 256);
+
+            /**
+             * After validation is successfull prepare statement for submitting
+             */
+            if($query = $queryString->execute()) {
+                $_SESSION['register']['user'] = "";
+                $_SESSION['register']['email'] = "";
+
+                header("Location: ./");
+                exit;
+            } else {
+                throw new \Exception("Error Processing Request", 1);
+                exit;
+            }
+        }
+
+        return $this->errors;
     }
 }

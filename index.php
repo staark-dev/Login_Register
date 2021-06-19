@@ -6,26 +6,36 @@ use Staark\LoginRegister\Login;
 use Staark\LoginRegister\Register;
 use Staark\LoginRegister\Database as DB;
 
+$login = new Login();
+$register = new Register();
+
 if(isset($_GET['login']) && isset($_POST['login'])) {
-    $getLogin = Login::sign_in();
+    /**
+     * Get all $_POST data and store to function
+     */
+    $getLogin = $login->login($_POST);
 }
 
 if(isset($_GET['register']) && isset($_POST['submit'])) {
-    $getErrors = Register::create($_POST);
+    /**
+     * Get all $_POST data and store to function
+     */
+    $getErrors = $register->create($_POST);
 }
 
 if(isset($_GET['logout'])) {
-    Login::logout();
+    $login->logout();
 }
 ?>
+
 <!DOCTYPE HTML>
 <html lang="en">
     <head> 
-        <title>PHP - Login / Register <?php if(Login::getSession()): ?>(Logged In)<?php endif; ?></title>
+        <title>PHP - Login / Register <?php if($login->user()): ?>(Logged In)<?php endif; ?></title>
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <?php if(Login::getSession()): ?>
+        <?php if($login->user()): ?>
             <div class="div user">
                 <h5>
                     Welcome back <?=$_SESSION['user']['id']; ?>
