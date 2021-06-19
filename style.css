@@ -1,0 +1,128 @@
+body, html {
+    margin: 0 auto;
+    padding: 0;
+    background: #141E30;  /* fallback for old browsers */
+    background: -webkit-linear-gradient(to right, #243B55, #141E30);  /* Chrome 10-25, Safari 5.1-6 */
+    background: linear-gradient(to right, #243B55, #141E30); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    text-decoration: none;
+}
+
+form[action="?login"], form[action="?register"] {
+    width: 40%;
+    background: #ffffff;
+    color: #000;
+    margin: 50px 30px auto;
+    padding: 10px;
+    font-size: 16px;
+    line-height: 30px;
+    font-family: system-ui;
+    border: 1px solid #20223a38;
+    border-radius: 5px;
+    min-height: 200px;
+    word-break: break-word;
+    word-spacing: normal;
+    height: auto;
+    clear: left;
+    overflow: auto;
+    float: left;
+}
+
+form[action="?register"] {
+    margin: 50px 30px auto !important;
+    clear: right;
+    float: right;
+}
+
+.errors {
+    background: #dc30309e;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 0 auto 10px;
+    font-size: 16px;
+    color: #fff;
+}
+
+form label {
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 700;
+    color: #243b55;
+    clear: right;
+}
+
+form label#checkbox {
+    clear: right;
+    float: left;
+    margin: 0 20px;
+}
+
+form input[type="email"], form input[type="password"], form input[type="text"] {
+    clear: both;
+    float: left;
+    margin: 10px 0;
+    padding: 8px 10px;
+    min-width: 95%;
+    background: #f7f7f7dd;
+    border: 0;
+    border-radius: 3px;
+}
+
+input[type="submit"] {
+    clear: both;
+    width: 100%;
+    padding: 10px 12px;
+    margin: 10px auto 0;
+    background: rgb(38 142 113);
+    border: 0px;
+    color: white;
+    font-size: 25px;
+    text-align: center;
+    font-family: ui-sans-serif;
+}
+
+input[type="submit"]:hover {
+    color: white;
+    box-shadow: 2px 3px 5px #00000063;
+    cursor: pointer;
+}
+
+input[type="checkbox"] {
+    clear: left;
+    margin: -20px 0px auto;
+    background: red;
+    color: red;
+    float: left;
+    padding: 5px;
+    border: 1px solid;
+}
+
+.div.user {
+    width: 50%;
+    background: #fff;
+    margin: 50px auto;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    padding: 5px 5px;
+    box-shadow: 0 2px 5px #00000052;
+}
+
+.div.user h5 {
+    background: #243b55;
+    padding: 15px 10px;
+    margin: -5px -5px 10px;
+    color: white;
+    font-size: 16px;
+    font-family: ui-rounded;
+}
+
+.div.user h5 a {
+    color: #141e30;
+    float: right;
+    text-decoration: none;
+    font-size: 12px;
+    background: #eee;
+    padding: 5px 10px;
+    margin: -4px 0 auto;
+}
