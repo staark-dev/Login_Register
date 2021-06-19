@@ -121,6 +121,6 @@ class Register {
             }
         }
 
-        return $this->errors;
+        return $this->errors ?? [];
     }
 }
