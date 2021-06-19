@@ -30,14 +30,14 @@ if(isset($_GET['logout'])) {
 <!DOCTYPE HTML>
 <html lang="en">
     <head> 
-        <title>PHP - Login / Register <?php if($login->user()): ?>(Logged In)<?php endif; ?></title>
+        <title>PHP - Login / Register</title>
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <?php if($login->user()): ?>
+        <?php if($login->user('login')): ?>
             <div class="div user">
                 <h5>
-                    Welcome back <?=$_SESSION['user']['id']; ?>
+                    Welcome back <?=$login->user('id'); ?>
                     <a href="?logout">Logout</a>
                 </h5>
                 

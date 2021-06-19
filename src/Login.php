@@ -204,7 +204,7 @@ class Login {
                 $loginQuery->execute();
 
                 // Redirect succes login
-                header("Location: ./");
+                header("Location: ./?dashboard");
                 exit;
             } else {
                 $this->errors['password'] = "That password not match or is incorect";
@@ -225,11 +225,6 @@ class Login {
          * Is acctive sessions in database return to home page or delete curent session from database
          * @param string email
          */
-
-        // BAD
-        //$session_sql = "DELETE FROM sessions WHERE email = " . $_SESSION['user']['email'];
-        //$this->db->query($session_sql);
-
         // God
         $sessionQuery = $this->db->prepare("DELETE FROM sessions WHERE email = :email");
         $sessionQuery->bindParam(':email', $_SESSION['user']['email'], PDO::PARAM_STR, 128);
@@ -261,8 +256,7 @@ class Login {
      */
     public function user(string $key = NULL) {
         if(!isset($_SESSION['user'])) {
-            return;
-            //throw new \Exception('Global variable SESSION for key user not set or is empty.');
+            return false;
         }
 
         return $_SESSION['user'][$key];
