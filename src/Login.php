@@ -18,7 +18,7 @@ class Login {
          * If $_data is not array or is empty return function.
          * @param _data
          */
-        if(!$_data || empty($_data)) {
+        if(!$_data || !is_array($_data)) {
             throw new \Exception('Invalid data post given.');
         }
 
@@ -31,10 +31,14 @@ class Login {
         }
 
         // Check email is valid
-        $email = filter_var($_data['email'], FILTER_SANITIZE_EMAIL);
+        if(filter_var($_data['email'], FILTER_VALIDATE_EMAIL)) {
+            $email = filter_var($_data['email'], FILTER_VALIDATE_EMAIL);
+        } else {
+            $this->errors['not_found'] = "Email was given not valid";
+        }
 
         // Check password is a string
-        $pass = filter_var($_data['password'], FILTER_SANITIZE_STRING);
+        $pass = htmlspecialchars($_data['password'], ENT_QUOTES | ENT_HTML401, 'UTF-8');
 
         // Check user remeber or false
         $remember = isset($_data['remember']) ?? FALSE;

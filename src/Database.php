@@ -1,10 +1,8 @@
 <?php
-declare(strict_types=1);
 namespace Staark\LoginRegister;
 
 use PDO;
 use PDOException;
-use function count;
 
 class Database {
     public $dbh;
@@ -15,14 +13,16 @@ class Database {
     {
         try {
             $this->dbh = new PDO($this->driver, "root", "");
+
             $this->dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->dbh->setAttribute(PDO::ATTR_PERSISTENT, true);
+            $this->dbh->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+
+            return $this->dbh;
         } catch (PDOException $e) {
-            echo "[ERROR]: " . $e->getMessage();
+            throw new \Exception("[ERROR]: " . $e->getMessage(), 1);
             exit;
         }
-
-        return $this;
     }
 
     public static function getInstance() {
@@ -31,9 +31,5 @@ class Database {
         }
 
         return self::$instance;
-    }
-
-    public function __invoke() {
-
     }
 }

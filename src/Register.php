@@ -18,7 +18,7 @@ class Register {
 
     private function validate(array $_data = []) {
         // Not give an array return function
-        if( !$_data || empty($_data) ) {
+        if( !$_data || !is_array($_data) ) {
             throw new \Exception('Error Processing Request', 1);
         }
 
@@ -28,23 +28,22 @@ class Register {
         }
 
         // Check email is ok and no xss injection
-        if( !empty($_data['email']) && is_string($_data['email']) ) {
+        if(!empty($_data['email']) && filter_var($_data['email'], FILTER_VALIDATE_EMAIL) && is_string($_data['email']) ) {
             $this->dataStored['email'] = filter_var($_data['email'], FILTER_VALIDATE_EMAIL);
         } else {
             $this->errors['email'] = "That email is not valid, please check your email !";
         }
-
+        
+        
         // Check password is ok and no xss injection
         if( !empty($_data['password']) && is_string($_data['password']) ) {
-            $this->dataStored['password'] = filter_var($_data['password'], FILTER_SANITIZE_SPECIAL_CHARS);
-            $this->dataStored['password'] = filter_var($_data['password'], FILTER_SANITIZE_NUMBER_INT);
+            $this->dataStored['password'] = htmlspecialchars($_data['password'], ENT_QUOTES | ENT_HTML401, 'UTF-8');
             $this->dataStored['pass'] = password_hash($this->dataStored['password'], PASSWORD_DEFAULT, ['cost' => 12]);
         }
 
         // Check password is ok and no xss injection
         if( !empty($_data['confirm-password']) && is_string($_data['confirm-password']) ) {
-            $this->dataStored['confirm-password'] = filter_var($_data['confirm-password'], FILTER_SANITIZE_SPECIAL_CHARS);
-            $this->dataStored['confirm-password'] = filter_var($_data['confirm-password'], FILTER_SANITIZE_NUMBER_INT);
+            $this->dataStored['confirm-password'] = htmlspecialchars($_data['confirm-password'], ENT_QUOTES | ENT_HTML401, 'UTF-8');
         }
         
         if($_data['password'] != $_data['confirm-password']) {
@@ -64,7 +63,7 @@ class Register {
     }
 
     public function create($_data = []) {
-        if( !$_data || empty($_data) ) {
+        if( !$_data || !is_array($_data) ) {
             throw new \Exception('Error Processing Request', 1);
         }
 

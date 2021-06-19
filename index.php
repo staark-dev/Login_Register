@@ -4,7 +4,6 @@ require_once 'vendor/autoload.php';
 
 use Staark\LoginRegister\Login;
 use Staark\LoginRegister\Register;
-use Staark\LoginRegister\Database as DB;
 
 $login = new Login();
 $register = new Register();
@@ -49,8 +48,8 @@ if(isset($_GET['logout'])) {
         <form action="?login" method="post" enctype="multipart/form">
             <?php if(isset($getLogin)): ?>
             <div class="errors">
-                <?=$getLogin['not_found']; ?>
-                <?=$getLogin['password'] ?? ""; ?>
+                <?=($getLogin['not_found']) ?? ""; ?>
+                <?=($getLogin['password']) ?? ""; ?>
             </div>
             <?php endif; ?>
 
