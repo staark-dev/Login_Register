@@ -42,8 +42,8 @@ if(isset($_GET['logout'])) {
                     <a href="?logout">Logout</a>
                 </h5>
                 
-                <p>Username: <?=$_SESSION['user']['id']?></p>
-                <p>Email: <?=$_SESSION['user']['email']?></p>
+                <p>Username: <?=$login->user('id'); ?></p>
+                <p>Email: <?=$login->user('email'); ?></p>
             </div>
         <?php else: ?>
         <form action="?login" method="post" enctype="multipart/form">

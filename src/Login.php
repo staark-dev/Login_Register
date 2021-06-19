@@ -249,12 +249,18 @@ class Login {
         exit;
     }
 
-    public function user() {
+    /**
+     * Get keys from current user session
+     * 
+     * @param string key
+     * @return string
+     */
+    public function user(string $key = NULL) {
         if(!isset($_SESSION['user'])) {
             return;
             //throw new \Exception('Global variable SESSION for key user not set or is empty.');
         }
 
-        return $_SESSION['user'];
+        return $_SESSION['user'][$key];
     }
 }
