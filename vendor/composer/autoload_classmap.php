@@ -8,4 +8,6 @@ $baseDir = dirname($vendorDir);
 return array(
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
     'Staark\\LoginRegister\\Database' => $baseDir . '/src/Database.php',
+    'Staark\\LoginRegister\\Login' => $baseDir . '/src/Login.php',
+    'Staark\\LoginRegister\\Register' => $baseDir . '/src/Register.php',
 );

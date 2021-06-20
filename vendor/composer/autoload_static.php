@@ -23,6 +23,8 @@ class ComposerStaticInit609ebbf44d5a60fc51efb9f340caa11c
     public static $classMap = array (
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'Staark\\LoginRegister\\Database' => __DIR__ . '/../..' . '/src/Database.php',
+        'Staark\\LoginRegister\\Login' => __DIR__ . '/../..' . '/src/Login.php',
+        'Staark\\LoginRegister\\Register' => __DIR__ . '/../..' . '/src/Register.php',
     );
 
     public static function getInitializer(ClassLoader $loader)

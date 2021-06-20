@@ -277,7 +277,7 @@ class Login {
             return;
         }
 
-
+        return $_COOKIE['remember'];
     }
 
     /**
