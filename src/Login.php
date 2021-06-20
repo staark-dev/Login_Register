@@ -1,26 +1,25 @@
 <?php
 namespace Staark\LoginRegister;
 
-use Staark\LoginRegister\Database as DB;
-use PDO;
+use Staark\LoginRegister\Database;
 
-class Login {
+class Login extends Database {
     public $errors = [];
-    protected $db;
     protected $dataStored = [];
 
+    // Import connection driver from Database Class
+    //public $dbh;
+
     public function __construct() {
+        parent::__construct();
+
         $this->errors = [];
         $this->dataStored = [];
-        $this->db = DB::getInstance()->dbh;
     }
 
-    protected function send($query = null) {
-        try {
-            $query->execute();
-        } catch (\PDOException $e) {
-            die($e->getMessage() . "<br /> <b>on line</b> " . __LINE__ . " class " . __CLASS__ . "<b> on function </b>" . __FUNCTION__);
-        }
+    protected function token(int $lenght = 0) {
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        return substr(str_shuffle($characters), 0, $lenght);
     }
 
     /**
@@ -47,6 +46,10 @@ class Login {
         }
     }
 
+    /**
+     * Check user in database for get informations give
+     * Login user and create an session
+     */
     public function login() {
         if( !is_array($this->dataStored) || empty($this->dataStored) ) {
             try {
@@ -55,7 +58,6 @@ class Login {
                 die($e->getMessage() . "<br /> <b>on line</b> " . __LINE__ . " class " . __CLASS__ . "<b> on function </b>" . __FUNCTION__);
             }
         }
-
 
         // Check email is valid
         if(filter_var($this->dataStored['email'], FILTER_VALIDATE_EMAIL)) {
@@ -68,44 +70,36 @@ class Login {
         $pass = htmlspecialchars($this->dataStored['password'], ENT_QUOTES, 'UTF-8');
 
         // Check user remeber or false
-        $remember = isset($_data['remember']) ?? FALSE;
-
-        /**
-         * Is acctive sessions in database return to home page or delete curent session from database
-         * @param email
-         */
-        $session_sql = "DELETE FROM sessions WHERE email = '$email'";
-        $this->db->query($session_sql);
+        $remember = isset($this->dataStored['remember']) ?? false;
 
         /**
          * Select from users table curent user details
          * If match in database curent email, store fields from database
          * 
-         * @param name
-         * @param password
          * @param email
          *
          */
-        $queryString = $this->db->prepare("SELECT email, name, password FROM accounts WHERE email = :email LIMIT 0,1");
-        $queryString->bindParam(':email', $email, PDO::PARAM_STR, 128);
+        $queryString = $this->prepare_sql("SELECT `token`, `email`, `name`, `password` FROM accounts WHERE `email` = :email LIMIT 0,1", [
+            ':email' => $email
+        ]);
 
-        /**
-         * Execute the query and get the result
-         * 
-         */
-        $this->send($queryString);
-        
         /**
          * Check user exit or not found
          */
         if($queryString->rowCount() > 0) {
             // Fetch Result from user
-            $user = $queryString->fetch(PDO::FETCH_OBJ);
+            $user = $queryString->fetch(\PDO::FETCH_OBJ);
+
+            // Check user active session.
+            $getSession = $this->prepare_sql("SELECT * FROM sessions WHERE `token` = :token", [
+                ':token' => $user->token
+            ]);
 
             // Check user password is match
             if(password_verify($pass, $user->password)) {
                 // Session Key for current user
                 $session = @session_id();
+                $tokenKey = $this->token(32);
 
                 // Set user for remember
                 if($remember != false) {
@@ -116,86 +110,74 @@ class Login {
                      * @param remember
                      * @return remember_keys
                      */
-                    setcookie("remember", "1", time() + 60 * 60 * 24, "/");
-                    setcookie("remember_email", $email, time() + 60 * 60 * 24, "/");
+                    setcookie("remember", 1, time() + 60 * 60 * 24, "/");
+                    setcookie("remember_email", $user->email, time() + 60 * 60 * 24, "/");
 
                     /**
                      * Insert in databse session user detalis
                      * Update user remember for current user
                      * 
                      * @param email
-                     * @param session_id
-                     * @param remember
-                     * @return null
                      */
-                    $queryRemember = $this->db->prepare("UPDATE accounts SET remember_me = true WHERE email = :email");
-                    
-                    /**
-                     * Bind query statement in database
-                     */
-                    $queryRemember->bindParam(':email', $user->email, PDO::PARAM_STR, 128);
+                    $this->prepare_sql("UPDATE accounts SET `remember_me` = 1, `token` = :token WHERE email = :email", [
+                        ':token' => $tokenKey,
+                        ':email' => $user->email
+                    ]);
 
                     /**
-                     * Execute the query statement.
+                     * Prepare query statement and sending
+                     * Insert a new session to database
+                     * 
+                     * @param string email
+                     * @param string key
+                     * @param string password
                      */
-                    $this->send($queryRemember);
-
-                    /**
-                     * Prepare query statement
-                     */
-                    $queryToken = $this->db->prepare("INSERT INTO sessions(email, `key`, password, active) VALUES (:email, :key, :password, 1)");
-                    
-                    /**
-                     * Bind query statement in database
-                     */
-                    $queryToken->bindParam(':email', $user->email, PDO::PARAM_STR, 128);
-                    $queryToken->bindParam(':key', $session, PDO::PARAM_STR, 32);
-                    $queryToken->bindParam(':password', $user->password, PDO::PARAM_STR, 256);
-                    //$queryToken->bindParam(':active', 1, PDO::PARAM_INT);
-
-                    /**
-                     * Execute the query statement.
-                     */
-                    $this->send($queryToken);
+                    if($getSession->rowCount() == 0) {
+                        $this->prepare_sql("INSERT INTO sessions(`token`, `email`, `key`, `password`, `active`) VALUES (:token, :email, :key, :password, 1)", [
+                            ':token'    => $tokenKey,
+                            ':email'    => $user->email,
+                            ':key'      => $session,
+                            ':password' => $user->password
+                        ]);
+                    } else {
+                        $this->prepare_sql("UPDATE sessions SET `token` = :token WHERE `email` = :email", [
+                            'token' => $tokenKey,
+                            'email' => $user->email
+                        ]);
+                    }
                 } else {
                     /**
                      * Insert in databse session user detalis
                      * Update user remember for current user
                      * 
                      * @param email
-                     * @param session_id
-                     * @param remember
-                     * @return null
                      */
-                    $queryRemember = $this->db->prepare("UPDATE accounts SET remember_me = false WHERE email = :email");
-                    
-                    /**
-                     * Bind query statement in database
-                     */
-                    $queryRemember->bindParam(':email', $user->email, PDO::PARAM_STR, 128);
+                    $this->prepare_sql("UPDATE accounts SET `remember_me` = 0, `token` = :token WHERE email = :email", [
+                        ':token' => $tokenKey,
+                        ':email' => $user->email
+                    ]);
 
                     /**
-                     * Execute the query statement.
+                     * Prepare query statement and sending
+                     * Insert a new session to database
+                     * 
+                     * @param string email
+                     * @param string key
+                     * @param string password
                      */
-                    $this->send($queryRemember);
-
-                    /**
-                     * Prepare query statement
-                     */
-                    $queryToken = $this->db->prepare("INSERT INTO sessions(email, `key`, password, active) VALUES (:email, :key, :password, 0)");
-                    
-                    /**
-                     * Bind query statement in database
-                     */
-                    $queryToken->bindParam(':email', $user->email, PDO::PARAM_STR, 128);
-                    $queryToken->bindParam(':key', $session, PDO::PARAM_STR, 32);
-                    $queryToken->bindParam(':password', $user->password, PDO::PARAM_STR, 256);
-                    //$queryToken->bindParam(':active', 0, PDO::PARAM_INT);
-
-                    /**
-                     * Execute the query statement.
-                     */
-                    $this->send($queryToken);
+                    if($getSession->rowCount() == 0) {
+                        $this->prepare_sql("INSERT INTO sessions(`token`, `email`, `key`, `password`, `active`) VALUES (:token, :email, :key, :password, 0)", [
+                            ':token'    => $tokenKey,
+                            ':email'    => $user->email,
+                            ':key'      => $session,
+                            ':password' => $user->password
+                        ]);
+                    } else{
+                        $this->prepare_sql("UPDATE sessions SET `token` = :token WHERE `email` = :email", [
+                            'token' => $tokenKey,
+                            'email' => $user->email
+                        ]);
+                    }
                 }
 
                 /**
@@ -212,20 +194,14 @@ class Login {
 
                 /**
                  * After check it's ok, store in database user session login
+                 * 
                  * @param last_login
                  * @param email
                  */
-                $loginQuery = $this->db->prepare("UPDATE accounts SET last_login = current_timestamp WHERE email = :email");
-                
-                /**
-                 * Bind query statement in database
-                 */
-                $loginQuery->bindParam(':email', $user->email, PDO::PARAM_STR, 128);
 
-                /**
-                 * Execute the query statement.
-                 */
-                $this->send($loginQuery);
+                $this->prepare_sql("UPDATE accounts SET last_login = current_timestamp WHERE email = :email", [
+                    ':email' => $user->email
+                ]);
 
                 // Redirect succes login
                 header("Location: ./?dashboard");
@@ -240,6 +216,9 @@ class Login {
         return $this->errors ?? [];
     }
 
+    /**
+     * After user has logged that remove active session
+     */
     public function logout() {
         if(!isset($_SESSION['user'])) {
             return;
@@ -249,10 +228,10 @@ class Login {
          * Is acctive sessions in database return to home page or delete curent session from database
          * @param string email
          */
-        // God
-        $sessionQuery = $this->db->prepare("DELETE FROM sessions WHERE email = :email");
-        $sessionQuery->bindParam(':email', $_SESSION['user']['email'], PDO::PARAM_STR, 128);
-        $sessionQuery->execute();
+        
+        $sessionQuery = $this->prepare_sql("DELETE FROM sessions WHERE email = :email", [
+            ':email' => $_SESSION['user']['email']
+        ]);
 
         /**
          * Destroy current user session.
@@ -273,11 +252,20 @@ class Login {
     }
 
     public function remember() {
-        if(!isset($_COOKIE['remember'])) {
-            return;
+        if(!isset($_COOKIE)) {
+            return false;
         }
 
-        return $_COOKIE['remember'];
+        $getSession = $this->prepare_sql("SELECT * FROM sessions WHERE `email` = :email", [
+            ':email' => $_COOKIE['remember_email']
+        ]);
+
+        if($getSession->rowCount() > 0) {
+            header("Location: ./?dashboard");
+            exit;
+        } else {
+            return false;
+        }
     }
 
     /**

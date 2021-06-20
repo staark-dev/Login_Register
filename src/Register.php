@@ -1,18 +1,19 @@
 <?php
 namespace Staark\LoginRegister;
 
-use Staark\LoginRegister\Database as DB;
 use Staark\LoginRegister\Login;
-
-class Register {
+class Register extends Database {
     protected $dataStored = [];
-    protected $db;
     public $errors = [];
 
+    // Import connection driver from Database Class
+    //public $dbh;
+
     public function __construct() {
+        parent::__construct();
+        
         $this->dataStored = [];
         $this->errors = [];
-        $this->db = DB::getInstance()->dbh;
     }
 
     /**
@@ -157,35 +158,21 @@ class Register {
             /**
              * Prepare statement for registration
              */
-            $queryString = $this->db->prepare("INSERT INTO accounts(name, email, password, token) VALUES (:name, :email, :pass, null)");
+            $this->prepare_sql("INSERT INTO accounts(name, email, password) VALUES (:name, :email, :pass)", [
+                ':name'     => $this->dataStored['user'],
+                ':email'    => $this->dataStored['email'],
+                ':pass'     => $this->dataStored['password']
+            ]);
             
-            /**
-             * Binding validation is ok and no xss injection
-             * Validate fields for security on database
-             * 
-             * @param string username
-             * @param string email
-             * @param string password
-             */
-            $queryString->bindParam(':name', $this->dataStored['user'], \PDO::PARAM_STR, 64);
-            $queryString->bindParam(':email', $this->dataStored['email'], \PDO::PARAM_STR, 128);
-            $queryString->bindParam(':pass', $this->dataStored['password'], \PDO::PARAM_STR, 256);
-
             /**
              * After validation is successfull prepare statement for submitting
              * No valid data to send return error info
              */
-            try {
-                if($queryString->execute()) {
-                    $_SESSION['register']['user'] = "";
-                    $_SESSION['register']['email'] = "";
-    
-                    header("Location: ./?success");
-                    exit;
-                }
-            } catch (\PDOException $e) {
-                die($e->getMessage() . "<br /> <b>on line</b> " . __LINE__ . " class " . __CLASS__ . "<b> on function </b>" . __FUNCTION__);
-            }
+            $_SESSION['register']['user'] = "";
+            $_SESSION['register']['email'] = "";
+
+            header("Location: ./?success");
+            exit;
         }
     }
 }

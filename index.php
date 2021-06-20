@@ -9,6 +9,11 @@ $login = new Login();
 $register = new Register();
 
 if(isset($_GET['login']) && isset($_POST['login'])) {
+    // Check session state
+    //if(!$login->remember()) {
+        // your functions for get active session of current users
+    //}
+
     /**
      * Store $_POST request variable
      */

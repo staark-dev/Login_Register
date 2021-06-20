@@ -1,6 +1,10 @@
 # Login_Register
 PHP - Login / Register System
 
+## Testing
+Email: ionuzcostin@gmail.com
+Password: 123
+
 # Demo
 ![alt text](https://i.imgur.com/gmKEf9l.png)
 ![alt text](https://i.imgur.com/U7uY1Qs.png)
