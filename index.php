@@ -10,16 +10,26 @@ $register = new Register();
 
 if(isset($_GET['login']) && isset($_POST['login'])) {
     /**
-     * Get all $_POST data and store to function
+     * Store $_POST request variable
      */
-    $getLogin = $login->login($_POST);
+    $login->store($_POST);
+
+    /**
+     * After store $_POST request variable and validate it, create account.
+     */
+    $login->login();
 }
 
 if(isset($_GET['register']) && isset($_POST['submit'])) {
     /**
-     * Get all $_POST data and store to function
+     * Store $_POST request variable
      */
-    $getErrors = $register->create($_POST);
+    $register->store($_POST);
+
+    /**
+     * After store $_POST request variable and validate it, create account.
+     */
+    $register->create();
 }
 
 if(isset($_GET['logout'])) {

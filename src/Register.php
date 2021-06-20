@@ -3,7 +3,6 @@ namespace Staark\LoginRegister;
 
 use Staark\LoginRegister\Database as DB;
 use Staark\LoginRegister\Login;
-use Throwable;
 
 class Register {
     protected $dataStored = [];
@@ -16,55 +15,110 @@ class Register {
         $this->db = DB::getInstance()->dbh;
     }
 
-    private function validate(array $_data = []) {
+    /**
+     * Store all _POST keys to new array variable
+     * After get fields form transaction to store
+     */
+    public function store(array $_data = array()) {
         // Not give an array return function
-        if( !$_data || !is_array($_data) ) {
-            throw new \Exception('Error Processing Request', 1);
+        if( !is_array($_data) || empty($_data) ) {
+            try {
+                throw new \Exception('Error Processing Request Data Store', 1);
+            } catch (\Exception $e) {
+                die($e->getMessage() . "<br /> <b>on line</b> " . __LINE__ . " class " . __CLASS__ . "<b> on function </b>" . __FUNCTION__);
+            }
         }
 
-        // Check username is ok and no xss injection
-        if( !empty($_data['user']) && is_string($_data['user']) ) {
-            $this->dataStored['user'] = filter_var($_data['user'], FILTER_SANITIZE_STRING);
+        /**
+         * Associate must validate the request
+         * @param string key
+         * @param string value
+         */
+        foreach($_data as $key => $value) {
+            $this->dataStored[$key] = $value;
+        }
+    }
+    
+    /**
+     * Validate Password Strength
+     * Password must be at least 8 characters in length.
+     * Password must include at least one upper case letter.
+     * Password must include at least one number.
+     * Password must include at least one special character.
+     */
+    private function password_strength(string $password = NULL) {
+        if(is_null($password)) return;
+
+        // Validate password strength
+        $uppercase = preg_match('@[A-Z]@', $password);
+        $lowercase = preg_match('@[a-z]@', $password);
+        $number    = preg_match('@[0-9]@', $password);
+        $specialChars = preg_match('@[^\w]@', $password);
+
+        if(!$uppercase || !$lowercase || !$number || !$specialChars || strlen($password) < 8) {
+            return true;
         }
 
-        // Check email is ok and no xss injection
-        if(!empty($_data['email']) && filter_var($_data['email'], FILTER_VALIDATE_EMAIL) && is_string($_data['email']) ) {
-            $this->dataStored['email'] = filter_var($_data['email'], FILTER_VALIDATE_EMAIL);
-        } else {
-            $this->errors['email'] = "That email is not valid, please check your email !";
-        }
-        
-        
-        // Check password is ok and no xss injection
-        if( !empty($_data['password']) && is_string($_data['password']) ) {
-            $this->dataStored['password'] = htmlspecialchars($_data['password'], ENT_QUOTES | ENT_HTML401, 'UTF-8');
-            $this->dataStored['pass'] = password_hash($this->dataStored['password'], PASSWORD_DEFAULT, ['cost' => 12]);
-        }
-
-        // Check password is ok and no xss injection
-        if( !empty($_data['confirm-password']) && is_string($_data['confirm-password']) ) {
-            $this->dataStored['confirm-password'] = htmlspecialchars($_data['confirm-password'], ENT_QUOTES | ENT_HTML401, 'UTF-8');
-        }
-        
-        if($_data['password'] != $_data['confirm-password']) {
-            $this->errors['confirm-password'] = "(!) Confirm Password not match with password<br>";
-        }
-
-        if( !isset($_data['terms']) ) {
-            $this->errors['terms'] = "(!) Confirm Accept Terms and Conditions";
-        }
-
-        $this->dataStored['terms'] = true;
-
-        return [
-            'data' => (object) $this->dataStored,
-            'error' => $this->errors
-        ];
+        //return password_hash($password, PASSWORD_DEFAULT, ['cost' => 12]);
     }
 
-    public function create($_data = []) {
-        if( !$_data || !is_array($_data) ) {
-            throw new \Exception('Error Processing Request', 1);
+    /**
+     * Validate all fields from store function
+     */
+    public function validate() {
+        // Not give an array return function
+        if( !$this->dataStored || !is_array($this->dataStored) || empty($this->dataStored) ) {
+            try {
+                throw new \Exception('Error Processing Request Data Validation', 1);
+            } catch (\Exception $e) {
+                die($e->getMessage() . "<br /> <b>on line</b> " . __LINE__ . " class " . __CLASS__ . "<b> on function </b>" . __FUNCTION__);
+            }
+        }
+        
+        // Validate user is string
+        if(!empty($this->dataStored['user']) && !is_string($this->dataStored['user'])) {
+            $this->errors['username'] = "(!) User should be at string.";
+        }
+
+        // Validate email is a valid email
+        if(!empty($this->dataStored['email']) && !filter_var($this->dataStored['email'], FILTER_VALIDATE_EMAIL)) {
+            $this->errors['email'] = "(!) Email should be at valid email.";
+        }
+
+        // Validate password is string and is Strength
+        if(!empty($this->dataStored['password']) && $this->password_strength($this->dataStored['password'])) {
+            $this->errors['password'] = "(!) Password should be at least 8 characters in length and should include at least one upper case letter, one number, and one special character.";
+        }
+
+        // Validate confirm password is match with password
+        if( $this->dataStored['confirm-password'] != $this->dataStored['password']) {
+            $this->errors['password'] = "(!) Confirm Password should be at Password";
+        }
+
+        // Check passed term and privacy
+        if(!isset($this->dataStored['terms'])) {
+            $this->errors['email'] = "(!) Terms and Privacy should be at confirmed.";
+        }
+
+        // Validate the VALUES
+        $this->dataStored['user']               = filter_var($this->dataStored['user'], FILTER_SANITIZE_STRING);
+        $this->dataStored['email']              = filter_var($this->dataStored['email'], FILTER_SANITIZE_EMAIL);
+        $this->dataStored['password']           = htmlspecialchars($this->dataStored['password'], ENT_QUOTES, 'UTF-8');
+        $this->dataStored['confirm-password']   = htmlspecialchars($this->dataStored['confirm-password'], ENT_QUOTES, 'UTF-8');
+
+        return ($this->errors) ? $this->errors : true;
+    }
+
+    /**
+     * Create user to datbase
+     */
+    public function create() {
+        if( !$this->dataStored || !is_array($this->dataStored) || empty($this->dataStored) ) {
+            try {
+                throw new \Exception('Error Processing Request Data', 1);
+            } catch (\Exception $e) {
+                die($e->getMessage() . "<br /> <b>on line</b> " . __LINE__ . " class " . __CLASS__ . "<b> on function </b>" . __FUNCTION__);
+            }
         }
 
         /**
@@ -75,13 +129,20 @@ class Register {
          * @param string email
          * @param string password
          */
-        if($valid = $this->validate($_data)) {
 
-            if(!empty($valid['error'])) {
-                $_SESSION['register']['user'] = $valid['data']->user;
-                $_SESSION['register']['email'] = $valid['data']->email;
-                $this->errors['errors'] = $valid['error'];
-            }
+        if($this->validate()) {
+            /**
+             * Hashing password for more secure passwords
+             * Algo SHA256
+             * 
+             * @param string password
+             * @param string hash
+             * 
+             * @return string hash
+             */
+            $this->dataStored['password'] = password_hash($this->dataStored['password'], PASSWORD_DEFAULT, [
+                'cost' => 12
+            ]);
 
             /**
              * Set on that form active session for store email and name
@@ -90,36 +151,41 @@ class Register {
              * @param string name
              * @param string email
              */
-            $_SESSION['register']['user'] = $valid['data']->user;
-            $_SESSION['register']['email'] = $valid['data']->email;
+            $_SESSION['register']['user'] = $this->dataStored['user'];
+            $_SESSION['register']['email'] = $this->dataStored['email'];
 
             /**
              * Prepare statement for registration
              */
-            $queryString = $this->db->prepare("INSERT INTO accounts(name, email, password) VALUES (:name, :email, :pass)");
+            $queryString = $this->db->prepare("INSERT INTO accounts(name, email, password, token) VALUES (:name, :email, :pass, null)");
             
             /**
              * Binding validation is ok and no xss injection
+             * Validate fields for security on database
+             * 
+             * @param string username
+             * @param string email
+             * @param string password
              */
-            $queryString->bindParam(':name', $valid['data']->user, \PDO::PARAM_STR, 64);
-            $queryString->bindParam(':email', $valid['data']->email, \PDO::PARAM_STR, 128);
-            $queryString->bindParam(':pass', $valid['data']->pass, \PDO::PARAM_STR, 256);
+            $queryString->bindParam(':name', $this->dataStored['user'], \PDO::PARAM_STR, 64);
+            $queryString->bindParam(':email', $this->dataStored['email'], \PDO::PARAM_STR, 128);
+            $queryString->bindParam(':pass', $this->dataStored['password'], \PDO::PARAM_STR, 256);
 
             /**
              * After validation is successfull prepare statement for submitting
+             * No valid data to send return error info
              */
-            if($query = $queryString->execute()) {
-                $_SESSION['register']['user'] = "";
-                $_SESSION['register']['email'] = "";
-
-                header("Location: ./");
-                exit;
-            } else {
-                throw new \Exception("Error Processing Request", 1);
-                exit;
+            try {
+                if($queryString->execute()) {
+                    $_SESSION['register']['user'] = "";
+                    $_SESSION['register']['email'] = "";
+    
+                    header("Location: ./?success");
+                    exit;
+                }
+            } catch (\PDOException $e) {
+                die($e->getMessage() . "<br /> <b>on line</b> " . __LINE__ . " class " . __CLASS__ . "<b> on function </b>" . __FUNCTION__);
             }
         }
-
-        return $this->errors ?? [];
     }
 }

@@ -7,38 +7,65 @@ use PDO;
 class Login {
     public $errors = [];
     protected $db;
+    protected $dataStored = [];
 
     public function __construct() {
         $this->errors = [];
+        $this->dataStored = [];
         $this->db = DB::getInstance()->dbh;
     }
 
-    public function login(array $_data = []) {
-        /**
-         * If $_data is not array or is empty return function.
-         * @param _data
-         */
-        if(!$_data || !is_array($_data)) {
-            throw new \Exception('Invalid data post given.');
+    protected function send($query = null) {
+        try {
+            $query->execute();
+        } catch (\PDOException $e) {
+            die($e->getMessage() . "<br /> <b>on line</b> " . __LINE__ . " class " . __CLASS__ . "<b> on function </b>" . __FUNCTION__);
+        }
+    }
+
+    /**
+     * Store all _POST keys to new array variable
+     * After get fields form transaction to store
+     */
+    public function store(array $_data = array()) {
+        // Not give an array return function
+        if( !is_array($_data) || empty($_data) ) {
+            try {
+                throw new \Exception('Error Processing Request Data Store', 1);
+            } catch (\Exception $e) {
+                die($e->getMessage() . "<br /> <b>on line</b> " . __LINE__ . " class " . __CLASS__ . "<b> on function </b>" . __FUNCTION__);
+            }
         }
 
         /**
-         * If $_POST is empty or null return function
-         * @param POST
+         * Associate must validate the request
+         * @param string key
+         * @param string value
          */
-        if(!isset($_POST)) {
-            throw new \Exception('$_POST given null data.');
+        foreach($_data as $key => $value) {
+            $this->dataStored[$key] = $value;
         }
+    }
+
+    public function login() {
+        if( !is_array($this->dataStored) || empty($this->dataStored) ) {
+            try {
+                throw new \Exception('Error Processing Request Data Store', 1);
+            } catch (\Exception $e) {
+                die($e->getMessage() . "<br /> <b>on line</b> " . __LINE__ . " class " . __CLASS__ . "<b> on function </b>" . __FUNCTION__);
+            }
+        }
+
 
         // Check email is valid
-        if(filter_var($_data['email'], FILTER_VALIDATE_EMAIL)) {
-            $email = filter_var($_data['email'], FILTER_VALIDATE_EMAIL);
+        if(filter_var($this->dataStored['email'], FILTER_VALIDATE_EMAIL)) {
+            $email = filter_var($this->dataStored['email'], FILTER_SANITIZE_EMAIL);
         } else {
             $this->errors['not_found'] = "Email was given not valid";
         }
 
         // Check password is a string
-        $pass = htmlspecialchars($_data['password'], ENT_QUOTES | ENT_HTML401, 'UTF-8');
+        $pass = htmlspecialchars($this->dataStored['password'], ENT_QUOTES, 'UTF-8');
 
         // Check user remeber or false
         $remember = isset($_data['remember']) ?? FALSE;
@@ -66,10 +93,7 @@ class Login {
          * Execute the query and get the result
          * 
          */
-        if (!$queryString->execute()) {
-            throw new \Exception("Error Processing Request", 1);
-            exit;
-        }
+        $this->send($queryString);
         
         /**
          * Check user exit or not found
@@ -114,7 +138,7 @@ class Login {
                     /**
                      * Execute the query statement.
                      */
-                    $queryRemember->execute();
+                    $this->send($queryRemember);
 
                     /**
                      * Prepare query statement
@@ -132,7 +156,7 @@ class Login {
                     /**
                      * Execute the query statement.
                      */
-                    $queryToken->execute();
+                    $this->send($queryToken);
                 } else {
                     /**
                      * Insert in databse session user detalis
@@ -153,7 +177,7 @@ class Login {
                     /**
                      * Execute the query statement.
                      */
-                    $queryRemember->execute();
+                    $this->send($queryRemember);
 
                     /**
                      * Prepare query statement
@@ -171,7 +195,7 @@ class Login {
                     /**
                      * Execute the query statement.
                      */
-                    $queryToken->execute();
+                    $this->send($queryToken);
                 }
 
                 /**
@@ -201,7 +225,7 @@ class Login {
                 /**
                  * Execute the query statement.
                  */
-                $loginQuery->execute();
+                $this->send($loginQuery);
 
                 // Redirect succes login
                 header("Location: ./?dashboard");
@@ -246,6 +270,14 @@ class Login {
          */
         header("Location: ./");
         exit;
+    }
+
+    public function remember() {
+        if(!isset($_COOKIE['remember'])) {
+            return;
+        }
+
+
     }
 
     /**
