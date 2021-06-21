@@ -1,11 +1,18 @@
 <?php
 namespace Staark\LoginRegister;
-class Database {
-    public $dbh = null;
-    private $driver = "mysql:host=localhost;dbname=login_register;port=3307";
 
-    public function __construct()
+class Database {
+    private static $instance = null;
+    private $dbh = null;
+    private $driver;
+
+    /**
+     * @throws \Exception
+     */
+    private function __construct()
     {
+        $this->driver = "mysql:host=localhost;dbname=login_register;port=3307";
+
         try {
             $this->dbh = new \PDO($this->driver, "root", "");
 
@@ -18,6 +25,16 @@ class Database {
             throw new \Exception("[ERROR]: " . $e->getMessage(), 1);
             exit;
         }
+    }
+
+    public static function getInstance(): ?Database
+    {
+        if (self::$instance == null)
+        {
+            self::$instance = new Database();
+        }
+
+        return self::$instance;
     }
 
     public function prepare_sql(string $sqlString = "", array $sqlParams = []) {

@@ -8,11 +8,10 @@ class Login extends Database {
     protected $dataStored = [];
 
     // Import connection driver from Database Class
-    //public $dbh;
+    public $dbh;
 
     public function __construct() {
-        parent::__construct();
-
+        $this->dbh = parent::getInstance();
         $this->errors = [];
         $this->dataStored = [];
     }
@@ -50,7 +49,8 @@ class Login extends Database {
      * Check user in database for get informations give
      * Login user and create an session
      */
-    public function login() {
+    public function login(): array
+    {
         if( !is_array($this->dataStored) || empty($this->dataStored) ) {
             try {
                 throw new \Exception('Error Processing Request Data Store', 1);
@@ -69,17 +69,17 @@ class Login extends Database {
         // Check password is a string
         $pass = htmlspecialchars($this->dataStored['password'], ENT_QUOTES, 'UTF-8');
 
-        // Check user remeber or false
+        // Check user remember or false
         $remember = isset($this->dataStored['remember']) ?? false;
 
         /**
          * Select from users table curent user details
          * If match in database curent email, store fields from database
          * 
-         * @param email
+         * @param string $email
          *
          */
-        $queryString = $this->prepare_sql("SELECT `token`, `email`, `name`, `password` FROM accounts WHERE `email` = :email LIMIT 0,1", [
+        $queryString = $this->dbh->prepare_sql("SELECT `token`, `email`, `name`, `password` FROM accounts WHERE `email` = :email LIMIT 0,1", [
             ':email' => $email
         ]);
 
@@ -91,7 +91,7 @@ class Login extends Database {
             $user = $queryString->fetch(\PDO::FETCH_OBJ);
 
             // Check user active session.
-            $getSession = $this->prepare_sql("SELECT * FROM sessions WHERE `token` = :token", [
+            $getSession = $this->dbh->prepare_sql("SELECT * FROM sessions WHERE `token` = :token", [
                 ':token' => $user->token
             ]);
 
@@ -107,8 +107,8 @@ class Login extends Database {
                      * Insert in cookie user remember key
                      * Use that for login after close page or back after time
                      * 
-                     * @param remember
-                     * @return remember_keys
+                     * @param string remember
+                     * @return string remember_keys
                      */
                     setcookie("remember", 1, time() + 60 * 60 * 24, "/");
                     setcookie("remember_email", $user->email, time() + 60 * 60 * 24, "/");
@@ -117,9 +117,9 @@ class Login extends Database {
                      * Insert in databse session user detalis
                      * Update user remember for current user
                      * 
-                     * @param email
+                     * @param string email
                      */
-                    $this->prepare_sql("UPDATE accounts SET `remember_me` = 1, `token` = :token WHERE email = :email", [
+                    $this->dbh->prepare_sql("UPDATE accounts SET `remember_me` = 1, `token` = :token WHERE email = :email", [
                         ':token' => $tokenKey,
                         ':email' => $user->email
                     ]);
@@ -133,26 +133,26 @@ class Login extends Database {
                      * @param string password
                      */
                     if($getSession->rowCount() == 0) {
-                        $this->prepare_sql("INSERT INTO sessions(`token`, `email`, `key`, `password`, `active`) VALUES (:token, :email, :key, :password, 1)", [
+                        $this->dbh->prepare_sql("INSERT INTO sessions(`token`, `email`, `key`, `password`, `active`) VALUES (:token, :email, :key, :password, 1)", [
                             ':token'    => $tokenKey,
                             ':email'    => $user->email,
                             ':key'      => $session,
                             ':password' => $user->password
                         ]);
                     } else {
-                        $this->prepare_sql("UPDATE sessions SET `token` = :token WHERE `email` = :email", [
+                        $this->dbh->prepare_sql("UPDATE sessions SET `token` = :token WHERE `email` = :email", [
                             'token' => $tokenKey,
                             'email' => $user->email
                         ]);
                     }
                 } else {
                     /**
-                     * Insert in databse session user detalis
+                     * Insert in database session user details
                      * Update user remember for current user
                      * 
-                     * @param email
+                     * @param string email
                      */
-                    $this->prepare_sql("UPDATE accounts SET `remember_me` = 0, `token` = :token WHERE email = :email", [
+                    $this->dbh->prepare_sql("UPDATE accounts SET `remember_me` = 0, `token` = :token WHERE email = :email", [
                         ':token' => $tokenKey,
                         ':email' => $user->email
                     ]);
@@ -166,14 +166,14 @@ class Login extends Database {
                      * @param string password
                      */
                     if($getSession->rowCount() == 0) {
-                        $this->prepare_sql("INSERT INTO sessions(`token`, `email`, `key`, `password`, `active`) VALUES (:token, :email, :key, :password, 0)", [
+                        $this->dbh->prepare_sql("INSERT INTO sessions(`token`, `email`, `key`, `password`, `active`) VALUES (:token, :email, :key, :password, 0)", [
                             ':token'    => $tokenKey,
                             ':email'    => $user->email,
                             ':key'      => $session,
                             ':password' => $user->password
                         ]);
                     } else{
-                        $this->prepare_sql("UPDATE sessions SET `token` = :token WHERE `email` = :email", [
+                        $this->dbh->prepare_sql("UPDATE sessions SET `token` = :token WHERE `email` = :email", [
                             'token' => $tokenKey,
                             'email' => $user->email
                         ]);
@@ -183,10 +183,10 @@ class Login extends Database {
                 /**
                  * Store user detalis in session
                  * 
-                 * @param email
-                 * @param name
-                 * @param login
-                 * @return user_session_keys
+                 * @param string email
+                 * @param string name
+                 * @param string login
+                 * @return mixed
                  */
                 $_SESSION['user']['id'] = $user->name;
                 $_SESSION['user']['email'] = $user->email;
@@ -195,15 +195,15 @@ class Login extends Database {
                 /**
                  * After check it's ok, store in database user session login
                  * 
-                 * @param last_login
-                 * @param email
+                 * @param string last_login
+                 * @param string email
                  */
 
-                $this->prepare_sql("UPDATE accounts SET last_login = current_timestamp WHERE email = :email", [
+                $this->dbh->prepare_sql("UPDATE accounts SET last_login = current_timestamp WHERE email = :email", [
                     ':email' => $user->email
                 ]);
 
-                // Redirect succes login
+                // Redirect success login
                 header("Location: ./?dashboard");
                 exit;
             } else {
@@ -229,7 +229,7 @@ class Login extends Database {
          * @param string email
          */
         
-        $sessionQuery = $this->prepare_sql("DELETE FROM sessions WHERE email = :email", [
+        $sessionQuery = $this->dbh->prepare_sql("DELETE FROM sessions WHERE email = :email", [
             ':email' => $_SESSION['user']['email']
         ]);
 
@@ -251,12 +251,13 @@ class Login extends Database {
         exit;
     }
 
-    public function remember() {
+    public function remember(): bool
+    {
         if(!isset($_COOKIE)) {
             return false;
         }
 
-        $getSession = $this->prepare_sql("SELECT * FROM sessions WHERE `email` = :email", [
+        $getSession = $this->dbh->prepare_sql("SELECT * FROM sessions WHERE `email` = :email", [
             ':email' => $_COOKIE['remember_email']
         ]);
 
@@ -264,21 +265,25 @@ class Login extends Database {
             header("Location: ./?dashboard");
             exit;
         } else {
-            return false;
+            header("Location: ./");
+            exit;
         }
     }
 
     /**
      * Get keys from current user session
-     * 
-     * @param string key
-     * @return string
+     *
+     * @param string|null $key
+     * @return mixed
      */
     public function user(string $key = NULL) {
-        if(!isset($_SESSION['user'])) {
-            return false;
+        if(!isset($_SESSION)) {
+            return null;
         }
 
-        return $_SESSION['user'][$key];
+        if(isset($key) && isset($_SESSION['user'][$key]))
+            return $_SESSION['user'][$key];
+        else
+            return null;
     }
 }

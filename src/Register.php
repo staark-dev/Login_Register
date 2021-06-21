@@ -7,10 +7,10 @@ class Register extends Database {
     public $errors = [];
 
     // Import connection driver from Database Class
-    //public $dbh;
+    public $dbh;
 
     public function __construct() {
-        parent::__construct();
+        $this->dbh = parent::getInstance();
         
         $this->dataStored = [];
         $this->errors = [];
@@ -34,6 +34,7 @@ class Register extends Database {
          * Associate must validate the request
          * @param string key
          * @param string value
+         * @return mixed
          */
         foreach($_data as $key => $value) {
             $this->dataStored[$key] = $value;
@@ -111,7 +112,7 @@ class Register extends Database {
     }
 
     /**
-     * Create user to datbase
+     * Create user to database
      */
     public function create() {
         if( !$this->dataStored || !is_array($this->dataStored) || empty($this->dataStored) ) {
@@ -158,7 +159,7 @@ class Register extends Database {
             /**
              * Prepare statement for registration
              */
-            $this->prepare_sql("INSERT INTO accounts(name, email, password) VALUES (:name, :email, :pass)", [
+            $this->dbh->prepare_sql("INSERT INTO accounts(name, email, password) VALUES (:name, :email, :pass)", [
                 ':name'     => $this->dataStored['user'],
                 ':email'    => $this->dataStored['email'],
                 ':pass'     => $this->dataStored['password']

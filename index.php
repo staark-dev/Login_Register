@@ -40,6 +40,10 @@ if(isset($_GET['register']) && isset($_POST['submit'])) {
 if(isset($_GET['logout'])) {
     $login->logout();
 }
+
+if(isset($_GET['dashboard'])) {
+    $login->remember();
+}
 ?>
 
 <!DOCTYPE HTML>
