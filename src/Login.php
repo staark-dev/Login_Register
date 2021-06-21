@@ -261,10 +261,7 @@ class Login extends Database {
             ':email' => $_COOKIE['remember_email']
         ]);
 
-        if($getSession->rowCount() > 0) {
-            header("Location: ./?dashboard");
-            exit;
-        } else {
+        if($getSession->rowCount() == 0) {
             header("Location: ./");
             exit;
         }
